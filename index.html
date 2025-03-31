@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Placement Form</title>
+    <style>
+        body {
+            border-radius: 20px;
+            margin: 20px;
+            padding: 20px;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            width: 250px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .form-group input {
+            flex: 1;
+            padding: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
+    <script>
+        function validateForm() {
+            let name = document.getElementById("name").value;
+            let dob = document.getElementById("dob").value;
+            let eid = document.getElementById("eid").value;
+            let pid = document.getElementById("pid").value;
+            let phno = document.getElementById("phno").value;
+            let namePattern = /^[A-Z][a-zA-Z ]*$/;
+            let dobPattern = /^\d{2}-\d{2}-\d{4}$/;
+            let eidPattern = /^[a-z]+\.[0-9a-z]+@kongu\.edu$/;
+            let pidPattern = /^[a-z]+\.[0-9]+@gmail\.com$/;
+            let phnoPattern = /^\d{10}$/;
+            if (!namePattern.test(name)) {
+                alert("Name must start with a capital letter and contain only letters and spaces.");
+                return false;
+            }
+            if (!dobPattern.test(dob)) {
+                alert("DOB must be in the format: DD-MM-YYYY");
+                return false;
+            }
+            if (!eidPattern.test(eid)) {
+                alert("E-mail ID must be in the format: name.roll@kongu.edu");
+                return false;
+            }
+            if (!pidPattern.test(pid)) {
+                alert("Personal-mail ID must be in the format: name.roll@gmail.com");
+                return false;
+            }
+            if (!phnoPattern.test(phno)) {
+                alert("Phone number must be exactly 10 digits.");
+                return false;
+            }
+            return true;
+        }
+        function getFormData() {
+    return {
+        name: document.getElementById("name").value,
+        dob: document.getElementById("dob").value,
+        eid: document.getElementById("eid").value,
+        pid: document.getElementById("pid").value,
+        github: document.getElementById("github").value,
+        linkedin: document.getElementById("linkedin").value,
+        leetcode: document.getElementById("leetcode").value,
+        problemsSolved: document.getElementById("problemsSolved").value,
+        languages: document.getElementById("languages").value
+    };
+}
+        function resetForm() {
+            document.getElementById("form").reset();
+        }
+        async function createData() {
+            if (!validateForm()) return;
+            const formData = getFormData();-
+            console.log("Data to be created:", formData); 
+            try {
+                const response = await fetch('http://localhost:4242/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                if (response.ok) {
+                    alert("Data created successfully!");
+                    resetForm();
+                    readData();
+                } else {
+                    alert("Failed to create data.");
+                }
+            } catch (error) {
+                console.error("Error creating data:", error);
+                alert("An error occurred while creating data.");
+            }
+        }
+        async function readData() {
+    try {
+        const response = await fetch('http://localhost:4242/getAll');
+        const data = await response.json();
+        let tableContent = `<tr>
+            <th>Name</th><th>DOB</th><th>Email</th><th>GitHub</th>
+            <th>LinkedIn</th><th>Leetcode</th><th>Actions</th>
+        </tr>`;
+
+        data.forEach((item) => {
+            tableContent += `
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.dob}</td>
+                <td>${item.eid}</td>
+                <td>${item.github}</td>
+                <td>${item.linkedin}</td>
+                <td>${item.leetcode}</td>
+                
+                <td>
+                    <button onclick="populateForm('${item._id}')">Edit</button>
+                    <button onclick="deleteData('${item._id}')">Delete</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("dataTable").innerHTML = tableContent;
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        alert("Failed to fetch data.");
+    }
+}
+
+
+        async function populateForm(id) {
+    try {
+        const response = await fetch(`http://localhost:4242/get/${id}`);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch data for ID: ${id}. Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Populate form fields
+        document.getElementById("name").value = data.name || "";
+        document.getElementById("dob").value = data.dob || "";
+        document.getElementById("eid").value = data.eid || "";
+        document.getElementById("pid").value = data.pid || "";
+        document.getElementById("phno").value = data.phone || "";
+        document.getElementById("github").value = data.github || "";
+        document.getElementById("linkedin").value = data.linkedin || "";
+        document.getElementById("leetcode").value = data.leetcode || "";
+        document.getElementById("problemsSolved").value = data.leetcodeProblems || "";
+        document.getElementById("languages").value = data.languagesKnown || "";
+
+        // Store the ID in the form for updating
+        document.getElementById("updateButton").setAttribute("data-id", id);
+        document.getElementById("updateButton").onclick = () => updateData(id);
+        
+    } catch (error) {
+        console.error("Error populating form:", error);
+        alert("Failed to populate form. Please check the console for more details.");
+    }
+}
+        async function updateData(id) {
+            if (!validateForm()) return;
+
+            const updatedData = getFormData();
+            console.log("Data to be updated:", updatedData); // Debugging log
+            try {
+                const response = await fetch(`http://localhost:4242/update/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (response.ok) {
+                    alert("Data updated successfully!");
+                    resetForm();
+                    readData();
+                } else {
+                    alert("Failed to update data.");
+                }
+            } catch (error) {
+                console.error("Error updating data:", error);
+                alert("An error occurred while updating data.");
+            }
+        }
+        async function deleteData(id) {
+            try {
+                const response = await fetch(`http://localhost:4242/delete/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert("Data deleted successfully!");
+                    readData();
+                } else {
+                    alert("Failed to delete data.");
+                }
+            } catch (error) {
+                console.error("Error deleting data:", error);
+                alert("An error occurred while deleting data.");
+            }
+        }
+    </script>
+</head>
+<body onload="readData()">
+    <center><h1>BIO-DATA</h1></center>
+    <form id="form">
+        <div class="form-group">
+            <label for="name">1. Name: </label>
+            <input type="text" id="name" name="name">
+        </div>
+        <div class="form-group">
+            <label for="dob">2. Date of Birth:</label>
+            <input type="text" id="dob" name="dob">
+        </div>
+        <div class="form-group">
+            <label for="eid">3. E-mail ID: </label>
+            <input type="text" id="eid" name="eid">
+        </div>
+        <div class="form-group">
+            <label for="pid">4. Personal-mail ID: </label>
+            <input type="text" id="pid" name="pid">
+        </div>
+        <div class="form-group">
+            <label for="phno">5. Phone Number: </label>
+            <input type="text" id="phno" name="phno">
+        </div>
+        <div class="form-group">
+            <label for="github">6. GitHub:</label>
+            <input type="text" id="github" name="github">
+        </div>
+        <div class="form-group">
+            <label for="linkedin">7. LinkedIn:</label>
+            <input type="text" id="linkedin" name="linkedin">
+        </div>
+        <div class="form-group">
+            <label for="leetcode">8. Leetcode:</label>
+            <input type="text" id="leetcode" name="leetcode">
+        </div>
+        <div class="form-group">
+            <label for="problemsSolved">9. Problems Solved:</label>
+            <input type="text" id="problemsSolved" name="problemsSolved">
+        </div>
+        <div class="form-group">
+            <label for="languages">10. Languages Known:</label>
+            <input type="text" id="languages" name="languages">
+        </div>
+        <center>
+            <button type="button" onclick="createData()">Create</button>
+            <button type="button" id="updateButton">Update</button>
+        </center>
+    </form>
+    <table id="dataTable"></table>
+</body>
+</html>
